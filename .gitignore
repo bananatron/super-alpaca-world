@@ -10,6 +10,7 @@
 node_modules
 .cache
 .yarn
+.parcel-cache
 
 # General
 .DS_Store
