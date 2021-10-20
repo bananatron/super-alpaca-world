@@ -1,0 +1,20 @@
+{
+  "name": "super-alpaca-world",
+  "devDependencies": {
+    "@parcel/transformer-image": "^2.0.0-rc.0",
+    "@parcel/transformer-sass": "^2.0.0-rc.0",
+    "parcel": "latest",
+    "sass": "^1.43.2"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "cash-dom": "^8.1.0",
+    "firebase": "9.1.1",
+    "phaser": "^3.55.2",
+    "vue": "^2.6.14"
+  }
+}
