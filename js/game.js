@@ -19,7 +19,7 @@ class MainScene extends Phaser.Scene {
   }
   CAMERA_ZOOM = 1
   SPRITE_SCALE = 2;
-  ALPACA_MOVESPEED = 90;
+  ALPACA_MOVESPEED = 120;
   STOP_TOLERANCE = 3;
   DEFAULT_START_LOCATION = 200;
   LERP = 0.05
