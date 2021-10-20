@@ -1,0 +1,66 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title>Super Alpaca World 2021</title>
+  <meta name="description" content="I mean, haven't YOU wanted to be an alpaca?">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/index.1855c62d.css">
+  <meta name="theme-color" content="#fafafa">
+</head>
+
+<body>
+  <h1 class="header-logo">Super Alpaca World</h1>
+
+  <main id="app-viewport">
+    <section v-bind:class="{ dn: name_form_complete }" class="tc pt7">
+      <h2 class="f2">Who are you?</h2>
+      <input type="text" id="form-name-input" v-model="name" placeholder="Bob Ross">
+
+      <p class="mt4">Which color represents your inner spirit?</p>
+      <div class="mb4">
+        <input type="radio" id="alpaca_color_blue" value="blue" v-model="alpaca_color">
+        <label for="alpaca_color_blue">Blue</label>
+
+        <input type="radio" id="alpaca_color_yellow" value="yellow" v-model="alpaca_color">
+        <label for="alpaca_color_yellow">Yellow</label>
+
+        <input type="radio" id="alpaca_color_purple" value="purple" v-model="alpaca_color">
+        <label for="alpaca_color_purple">Purple</label>
+
+        <input type="radio" id="pink" value="pink" v-model="alpaca_color">
+        <label for="pink">Pink</label>
+
+        <input type="radio" id="alpaca_color_green" value="green" v-model="alpaca_color">
+        <label for="alpaca_color_green">Green</label>
+      </div>
+
+      <input type="submit" class="button is-large db m0a" value="Let's Go" v-on:click="submitNameForm" v-bind:disabled="name==''">
+    </section>
+
+    <section class="chat-viewport" v-bind:class="{dn: !name_form_complete, 'is-hidden': chat_hidden }">
+      <button class="button pointer" v-on:click="chat_hidden = !chat_hidden">🤫</button>
+      <ul class="pa2 overflow-auto">
+        <li v-for="(chatMessage, messageId) in chat_messages" :key="messageId" class="mb3">
+          <span class="o-80">{{ chatMessage.author }}</span>:
+          <span class="fg1">{{ chatMessage.message }}</span>
+          <span class="o-40 fr f6 pt1">{{ chatMessage.timestamp }}</span>
+          <span class="fr pointer o-50" v-if="chatMessage.author == name" v-on:click="deleteChatMessage(messageId)">🗑</span>
+        </li>
+      </ul>
+      <span class="red pa1">{{command_warning}}</span>
+      <div class="flex">
+        <textarea type="text" v-model="chat_input" class="w-100 pa1" v-on:keyup.enter="sendChatMessage"></textarea>
+        <button class="ph3" v-bind:disabled="chat_input==''" v-on:click="sendChatMessage">Send</button>
+      </div>
+    
+    </section>
+  </main>
+
+  <main id="game-viewport" class="dn"></main>
+
+  <script src="/index.d24fe78a.js" defer=""></script>
+</body>
+
+</html>

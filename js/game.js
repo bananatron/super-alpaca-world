@@ -320,7 +320,7 @@ class MainScene extends Phaser.Scene {
 
   setupEnvironmentObjects() {
     // CRYBABY FOUNTAIN WILL GRAND A WISH WIHTH EVERY TEAR ⛲️😭
-    const fountain = this.physics.add.sprite(3000, 1000, 'crybabyFountain');
+    const fountain = this.physics.add.sprite(2800, 300, 'crybabyFountain');
     fountain.setScale(this.SPRITE_SCALE);
     fountain.play({key: 'crybabyFountainFlow'})
     fountain.body.immovable = true;

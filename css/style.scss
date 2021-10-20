@@ -26,15 +26,22 @@ input[type='text'] {
   padding: $base-spacing/4 $base-spacing/2;
 }
 
+.input[type="submit"],
 button,
 .button {
   border-radius: 0;
+  cursor: pointer;
   background: $color-primary;
   color: white;
   border: 0;
   padding: $base-spacing/2 $base-spacing;
   &.is-large {
     font-size: 1.4rem;
+  }
+
+  &:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
   }
 }
 

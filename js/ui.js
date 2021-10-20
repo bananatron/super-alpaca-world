@@ -10,6 +10,13 @@ export const UI = {
       created: function () {
         this.startFirebaseChatListener();
       },
+      mounted: function() {
+        document.querySelector('#form-name-input').addEventListener('keypress', (event) => {
+          if (event.key !== 'Enter') return;
+
+          this.submitNameForm();
+        });
+      },
       data: {
         name: window.localStorage.getItem('name') || '',
         name_form_complete: false,
@@ -22,7 +29,7 @@ export const UI = {
       },
       methods: {
         submitNameForm: function() {
-          if (!this.name) { console.error('no name whoops'); return; }
+          if (!this.name || this.name === '') { console.error('no name whoops'); return; }
 
           if (!window.localStorage.getItem('id')) {
             window.localStorage.setItem('id', Math.round(Math.random() * 99999999999999))
