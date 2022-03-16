@@ -32,11 +32,8 @@ class MainScene extends Phaser.Scene {
   FOUNTAIN_X = 2800;
   FOUNTAIN_Y = 300;
 
-
-
   db = getDatabase();
   target = new Phaser.Math.Vector2();
-  alpaca_group = null;
 
   // Filled with sprite objects as firebase connects
   game_alpacas = {} 
@@ -74,22 +71,26 @@ class MainScene extends Phaser.Scene {
     const spitRef = ref(this.db, `spit`);
 
     onChildAdded(spitRef, (snapshot) => {
-      this.game_alpacas[id].sprite.play({key: 'spit'})
+      const spitSnapshot = snapshot.val();
+      if (!spitSnapshot) return;
+      this.game_alpacas[id].sprite.play({key: 'spit'});
 
       setTimeout(() => {
-        const spitSnapshot = snapshot.val();
-        if (!spitSnapshot) return;
-  
         const spitTarget = new Phaser.Math.Vector2();
         spitTarget.x = spitSnapshot.targetX;
         spitTarget.y = spitSnapshot.targetY;
-  
+
         const spitInstance = this.physics.add.sprite(spitSnapshot.originX, spitSnapshot.originY, 'spit');
+        spitInstance.spitter_id = spitSnapshot.user_id;
         spitInstance.play({key: 'spitFly'});
-        
+        spitInstance.setDepth(9999);
+        spitInstance.setCollideWorldBounds = true;
+        spitInstance.body.onOverlap = true;
+
+        this.spit_group.add(spitInstance);
         this.physics.moveToObject(spitInstance, spitTarget, this.ALPACA_SPITSPEED);
         this.game_alpacas[id].sprite.play({key: 'idle'})
-      }, 600)
+      }, 590)
 
     });
   }
@@ -179,7 +180,11 @@ class MainScene extends Phaser.Scene {
     this.game_alpacas[id].sprite.setScale(this.SPRITE_SCALE);
     this.game_alpacas[id].sprite.play({key: 'idle'});
     this.game_alpacas[id].sprite.tint = this.COLORMAP[color];
-    this.game_alpacas[id].sprite.body.collideWorldBounds = true;
+    this.game_alpacas[id].sprite.setCollideWorldBounds = true;
+    this.game_alpacas[id].sprite.body.onOverlap = true;
+    this.game_alpacas[id].sprite.name = id;
+
+    // Add to the sprite group
     this.alpaca_group.add(this.game_alpacas[id].sprite);
 
     // Setup target
@@ -419,7 +424,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet(
       'spit',
       spitSpriteSheet,
-      { frameWidth: 64, frameHeight: 64 }
+      { frameWidth: 32, frameHeight: 32 }
     );
 
     this.load.spritesheet(
@@ -449,9 +454,16 @@ class MainScene extends Phaser.Scene {
     this.load.image('grass', grassBackround);
 
     this.alpaca_group = this.physics.add.group({
+      name: 'alpaca_group',
       key: 'alpaca_group',
-      frameQuantity: 30
+      frameQuantity: 0,
     });
+
+    this.spit_group = this.physics.add.group({
+      name: 'spit_group',
+      key: 'spit_group',
+      frameQuantity: 0,
+    })
   }
 
   setupEnvironmentObjects() {
@@ -482,6 +494,7 @@ class MainScene extends Phaser.Scene {
     tree.body.immovable = true;
     tree.setOrigin(0.5, 0.9);
     tree.setDepth(tree.y);
+    tree.body.collideWorldBounds = false;
 
     this.game_objects[id].sprite = tree; // Set it to global store
   }
@@ -493,6 +506,7 @@ class MainScene extends Phaser.Scene {
     stone.setScale(this.SPRITE_SCALE);
     stone.play({key: `stone${Math.floor(Math.random() * 7).toString()}`})
     stone.body.immovable = true;
+    stone.body.collideWorldBounds = false;
 
     this.game_objects[id].sprite = stone; // Set it to global store
   }
@@ -506,6 +520,7 @@ class MainScene extends Phaser.Scene {
     sign.body.immovable = true;
     sign.setDepth(sign.y);
     sign.setOrigin(0.5, 0.9);
+    sign.body.collideWorldBounds = false;
 
     // Add text to sign
     const textObj = this.add.text(sign.x - 30, sign.y - 55, text.substring(0, 5), { fontFamily: 'monospace', fontSize: 22, resolution: 2, color: 'black' });
@@ -522,6 +537,21 @@ class MainScene extends Phaser.Scene {
     this.startSpitListener();
   }
 
+  alpacaHitAnimation(alpacaSprite, spitSprite) {
+
+    alpacaSprite.tint = Math.random() * 0xffffff;
+    setTimeout(() => {
+      spitSprite.destroy();
+      
+    }, this.ALPACA_SPITSPEED/3)
+    
+
+    // screenshake if you get hit
+    if (alpacaSprite.name === window.localStorage.getItem('id')) {
+      this.cameras.main.shake(150, .005, 20);
+    }
+  }
+
   create() {
     // Add scene stuff
     this.loadAnimations();
@@ -533,12 +563,27 @@ class MainScene extends Phaser.Scene {
     this.cameras.main.setZoom(this.CAMERA_ZOOM);
     this.cameras.main.backgroundColor = Phaser.Display.Color.HexStringToColor("#vvvvvv");
 
-    
+    // Listen for overlap/collisions
+    this.physics.add.overlap(this.spit_group, this.alpaca_group, (spit, alpaca) => {
+      // Don't collide with self
+      if (alpaca.name != spit.spitter_id) {
+        this.alpacaHitAnimation(alpaca, spit);
+      }
+    });
+
     this.startFirebaseListener(); // Load alpacas
     this.setupControlListener(); // Setup controls
   }
 
   update() {
+    // this.physics.collide('alpaca_group', 'spit_group', function() {
+    //   console.log('!!ff!');
+    // });
+
+    // this.physics.overlap('alpaca_group', 'spit_group', function() {
+    //   console.log('!!!');
+    // });
+
     Object.keys(this.game_alpacas).forEach((id) => {
       const alpaca = this.game_alpacas[id]
 
@@ -580,7 +625,8 @@ const config = {
   resizeInterval: 2000,
   parent: 'game-viewport',
   physics: {
-      default: 'arcade'
+      default: 'arcade',
+      arcade: { debug: false }
   },
   backgroundColor: '#4488aa',
   pixelArt: true,
