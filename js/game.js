@@ -73,7 +73,7 @@ class MainScene extends Phaser.Scene {
     onChildAdded(spitRef, (snapshot) => {
       const spitSnapshot = snapshot.val();
       if (!spitSnapshot) return;
-      this.game_alpacas[id].sprite.play({key: 'spit'});
+      this.game_alpacas[spitSnapshot.user_id].sprite.play({key: 'spit'});
 
       setTimeout(() => {
         const spitTarget = new Phaser.Math.Vector2();
@@ -538,13 +538,11 @@ class MainScene extends Phaser.Scene {
   }
 
   alpacaHitAnimation(alpacaSprite, spitSprite) {
-
     alpacaSprite.tint = Math.random() * 0xffffff;
     setTimeout(() => {
       spitSprite.destroy();
       
-    }, this.ALPACA_SPITSPEED/3)
-    
+    }, this.ALPACA_SPITSPEED/3.5)
 
     // screenshake if you get hit
     if (alpacaSprite.name === window.localStorage.getItem('id')) {
