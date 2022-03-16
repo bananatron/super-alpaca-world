@@ -23,13 +23,15 @@ class MainScene extends Phaser.Scene {
   SPRITE_SCALE = 2;
   ALPACA_MOVESPEED = 120;
   ALPACA_SPITSPEED = 600;
+  ALPACA_SPIT_DELAY = 620;
   STOP_TOLERANCE = 3;
   DEFAULT_START_LOCATION = 200;
   LERP = 0.05
   BG_TILE_SIZE = 768;
   WORLD_SIZE = this.BG_TILE_SIZE * 4;
   FOUNTAIN_X = 2800;
-  FOUNTAIN_Y = 300
+  FOUNTAIN_Y = 300;
+
 
 
   db = getDatabase();
@@ -68,23 +70,27 @@ class MainScene extends Phaser.Scene {
   }
 
   startSpitListener() {
-    // const localUserId = window.localStorage.getItem('id')
+    const id = window.localStorage.getItem('id')
     const spitRef = ref(this.db, `spit`);
 
     onChildAdded(spitRef, (snapshot) => {
-      // TODO add spit animation
+      this.game_alpacas[id].sprite.play({key: 'spit'})
 
-      const spitSnapshot = snapshot.val();
-      if (!spitSnapshot) return;
+      setTimeout(() => {
+        const spitSnapshot = snapshot.val();
+        if (!spitSnapshot) return;
+  
+        const spitTarget = new Phaser.Math.Vector2();
+        spitTarget.x = spitSnapshot.targetX;
+        spitTarget.y = spitSnapshot.targetY;
+  
+        const spitInstance = this.physics.add.sprite(spitSnapshot.originX, spitSnapshot.originY, 'spit');
+        spitInstance.play({key: 'spitFly'});
+        
+        this.physics.moveToObject(spitInstance, spitTarget, this.ALPACA_SPITSPEED);
+        this.game_alpacas[id].sprite.play({key: 'idle'})
+      }, 600)
 
-      const spitTarget = new Phaser.Math.Vector2();
-      spitTarget.x = spitSnapshot.targetX;
-      spitTarget.y = spitSnapshot.targetY;
-
-      const spitInstance = this.physics.add.sprite(spitSnapshot.originX, spitSnapshot.originY, 'spit');
-      spitInstance.play({key: 'spitFly'});
-      
-      this.physics.moveToObject(spitInstance, spitTarget, this.ALPACA_SPITSPEED);
     });
   }
 
@@ -319,13 +325,20 @@ class MainScene extends Phaser.Scene {
     spitTarget.y = (this.cameras.main.worldView.y) + (mouseY / this.CAMERA_ZOOM);
 
     const localAlpacaSprite = this.game_alpacas[window.localStorage.getItem('id')].sprite
+    // Must be standing still
+    if (localAlpacaSprite.isSpitting === true) return;
+    if (localAlpacaSprite.body.velocity.x != 0 && localAlpacaSprite.body.velocity.y != 0) {
+      return;
+    }
+
+    localAlpacaSprite.isSpitting = true;
     
     let alpacaX = localAlpacaSprite.x;
     let alpacaY = localAlpacaSprite.y - 46;
 
     // Adjust origin to be mouth, not sprite x/y
     if (localAlpacaSprite.flipX === true) {
-      alpacaX = localAlpacaSprite.x + 52;
+      alpacaX = localAlpacaSprite.x + 60;
     } else {
       alpacaX = localAlpacaSprite.x - 52;
     }
@@ -341,7 +354,8 @@ class MainScene extends Phaser.Scene {
       const spitKey = spitInstance.key;
       setTimeout(() => {
         remove(ref(this.db, `spit/${spitKey}`));
-      }, 1200)
+        localAlpacaSprite.isSpitting = false;
+      }, this.ALPACA_SPIT_DELAY)
     })
   }
 
@@ -363,7 +377,7 @@ class MainScene extends Phaser.Scene {
   }
 
   setupControlListener() {
-      // Allow spaces in chat without triggering this
+    // Allow spaces in chat without triggering this
     this.input.keyboard.on('keydown-SPACE', (event) => {
       if (event.target.tagName === 'TEXTAREA') return;
       event.preventDefault();
