@@ -252,7 +252,8 @@ class MainScene extends Phaser.Scene {
     // Set new location @ firebase
     // (then movement will happen in response to DB change)
     update(ref(this.db, `users/${id}`), {
-      x: x, y: y
+      x: x, y: y,
+      last_update: (new Date()).toISOString(),
     });
 
     // Set localstorage

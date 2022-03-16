@@ -54,7 +54,7 @@ export const UI = {
           update(ref(db, `users/${id}`), {
             id: id,
             name: name,
-            alpaca_color : alpaca_color
+            alpaca_color : alpaca_color,
           });
         },
 
