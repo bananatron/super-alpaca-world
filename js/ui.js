@@ -50,10 +50,11 @@ export const UI = {
           if (!id || !name || !alpaca_color) {
             console.error("Whoah man, you don't have all the goodies to register with Firebase")
           }
-          
+
           update(ref(db, `users/${id}`), {
             id: id,
             name: name,
+            offline: false,
             alpaca_color : alpaca_color,
           });
         },

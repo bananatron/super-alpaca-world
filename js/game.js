@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import $ from 'cash-dom';
-import { getDatabase, ref, onValue, update} from "firebase/database";
+import { getDatabase, ref, onValue, update, onDisconnect} from "firebase/database";
 
 import alpacaRunSpritesheet from '../assets/sprites/alpaca-run-1.png';
 import crybabyFountain from '../assets/sprites/crybaby-fountain.png';
@@ -25,6 +25,9 @@ class MainScene extends Phaser.Scene {
   LERP = 0.05
   BG_TILE_SIZE = 768;
   WORLD_SIZE = this.BG_TILE_SIZE * 4;
+  FOUNTAIN_X = 2800;
+  FOUNTAIN_Y = 300
+
 
   db = getDatabase();
   target = new Phaser.Math.Vector2();
@@ -35,11 +38,17 @@ class MainScene extends Phaser.Scene {
   game_objects = {}
 
   startAlpacaListener() {
+    const localUserId = window.localStorage.getItem('id')
     const users = ref(this.db, `users`);
+    const localUserRef = ref(this.db, `users/${localUserId}`);
+
+    onDisconnect(localUserRef).update(this.randomDisconnectLocation());
 
     onValue(users, (snapshot) => {
       const alpacaSnapshot = snapshot.val();
       if (!alpacaSnapshot) return;
+
+      alpacaSnapshot
 
       Object.keys(alpacaSnapshot).forEach((key) => {
         const alpacaData = alpacaSnapshot[key];
@@ -53,6 +62,21 @@ class MainScene extends Phaser.Scene {
         )
       })
     });
+  }
+
+  randomDisconnectLocation() {
+    const maxX = this.FOUNTAIN_X + 150;
+    const minX = this.FOUNTAIN_X - 300;
+
+    const maxY = this.FOUNTAIN_Y + 150;
+    const minY = this.FOUNTAIN_Y - 150;
+
+
+    return {
+      offline: true,
+      x: (Math.random() * (maxX - minX) + minX),
+      y: (Math.random() * (maxY - minY) + minY),
+    }
   }
 
   startObjectListener() {
@@ -245,7 +269,7 @@ class MainScene extends Phaser.Scene {
   }
 
   submitMoveLocation(pointer) {
-    const id = window.localStorage.getItem('id');
+    const id = window.localStorage.getItem('id')
     const x = (this.cameras.main.worldView.x) + (pointer.x / this.CAMERA_ZOOM)
     const y = (this.cameras.main.worldView.y) + (pointer.y / this.CAMERA_ZOOM)
 
@@ -321,7 +345,7 @@ class MainScene extends Phaser.Scene {
 
   setupEnvironmentObjects() {
     // CRYBABY FOUNTAIN WILL GRAND A WISH WIHTH EVERY TEAR ⛲️😭
-    const fountain = this.physics.add.sprite(2800, 300, 'crybabyFountain');
+    const fountain = this.physics.add.sprite(this.FOUNTAIN_X, this.FOUNTAIN_Y, 'crybabyFountain');
     fountain.setScale(this.SPRITE_SCALE);
     fountain.play({key: 'crybabyFountainFlow'})
     fountain.body.immovable = true;
