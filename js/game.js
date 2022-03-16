@@ -1,8 +1,10 @@
 import Phaser from 'phaser'
 import $ from 'cash-dom';
-import { getDatabase, ref, onValue, update, onDisconnect} from "firebase/database";
+import { getDatabase, ref, onValue, onChildAdded, update, push, remove, onDisconnect} from "firebase/database";
 
 import alpacaRunSpritesheet from '../assets/sprites/alpaca-run-1.png';
+import alpacaSpitSpritesheet from '../assets/sprites/alpaca-spit-1.png';
+import spitSpriteSheet from '../assets/sprites/spit.png';
 import crybabyFountain from '../assets/sprites/crybaby-fountain.png';
 import sign from '../assets/sprites/sign.png';
 import stones from '../assets/sprites/stones.png';
@@ -20,6 +22,7 @@ class MainScene extends Phaser.Scene {
   CAMERA_ZOOM = 1
   SPRITE_SCALE = 2;
   ALPACA_MOVESPEED = 120;
+  ALPACA_SPITSPEED = 600;
   STOP_TOLERANCE = 3;
   DEFAULT_START_LOCATION = 200;
   LERP = 0.05
@@ -61,6 +64,27 @@ class MainScene extends Phaser.Scene {
           alpacaData.y || Math.random() * 100 + this.DEFAULT_START_LOCATION,
         )
       })
+    });
+  }
+
+  startSpitListener() {
+    // const localUserId = window.localStorage.getItem('id')
+    const spitRef = ref(this.db, `spit`);
+
+    onChildAdded(spitRef, (snapshot) => {
+      // TODO add spit animation
+
+      const spitSnapshot = snapshot.val();
+      if (!spitSnapshot) return;
+
+      const spitTarget = new Phaser.Math.Vector2();
+      spitTarget.x = spitSnapshot.targetX;
+      spitTarget.y = spitSnapshot.targetY;
+
+      const spitInstance = this.physics.add.sprite(spitSnapshot.originX, spitSnapshot.originY, 'spit');
+      spitInstance.play({key: 'spitFly'});
+      
+      this.physics.moveToObject(spitInstance, spitTarget, this.ALPACA_SPITSPEED);
     });
   }
 
@@ -181,6 +205,20 @@ class MainScene extends Phaser.Scene {
     });
 
     this.anims.create({
+      key: 'spit',
+      frames: this.anims.generateFrameNumbers('alpacaSpit'),
+      frameRate: 4,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: 'spitFly',
+      frames: this.anims.generateFrameNumbers('spit'),
+      frameRate: 9,
+      repeat: -1
+    });
+
+    this.anims.create({
       key: 'crybabyFountainFlow',
       frames: this.anims.generateFrameNumbers('crybabyFountain'),
       frameRate: 4,
@@ -268,6 +306,45 @@ class MainScene extends Phaser.Scene {
     });
   }
 
+  submitSpitLocation() {
+    // Set spit location @ firebase
+    // (then spit draw will happen in response to DB change)
+    const id = window.localStorage.getItem('id');
+
+    const mouseX = this.input.mousePointer.x;
+    const mouseY = this.input.mousePointer.y;
+
+    const spitTarget = new Phaser.Math.Vector2();
+    spitTarget.x = (this.cameras.main.worldView.x) + (mouseX / this.CAMERA_ZOOM);
+    spitTarget.y = (this.cameras.main.worldView.y) + (mouseY / this.CAMERA_ZOOM);
+
+    const localAlpacaSprite = this.game_alpacas[window.localStorage.getItem('id')].sprite
+    
+    let alpacaX = localAlpacaSprite.x;
+    let alpacaY = localAlpacaSprite.y - 46;
+
+    // Adjust origin to be mouth, not sprite x/y
+    if (localAlpacaSprite.flipX === true) {
+      alpacaX = localAlpacaSprite.x + 52;
+    } else {
+      alpacaX = localAlpacaSprite.x - 52;
+    }
+
+    push(ref(this.db, `spit`), {
+      originX: alpacaX,
+      originY: alpacaY,
+      targetX: spitTarget.x,
+      targetY: spitTarget.y,
+      user_id: id,
+      spit_at: (new Date()).toISOString(),
+    }).then((spitInstance) => {
+      const spitKey = spitInstance.key;
+      setTimeout(() => {
+        remove(ref(this.db, `spit/${spitKey}`));
+      }, 1200)
+    })
+  }
+
   submitMoveLocation(pointer) {
     const id = window.localStorage.getItem('id')
     const x = (this.cameras.main.worldView.x) + (pointer.x / this.CAMERA_ZOOM)
@@ -286,8 +363,16 @@ class MainScene extends Phaser.Scene {
   }
 
   setupControlListener() {
+      // Allow spaces in chat without triggering this
+    this.input.keyboard.on('keydown-SPACE', (event) => {
+      if (event.target.tagName === 'TEXTAREA') return;
+      event.preventDefault();
+
+      this.submitSpitLocation();
+    });
+
     // On click
-    this.input.on('pointerdown', function (pointer) {
+    this.input.on('pointerup', function (pointer) {
       this.submitMoveLocation(pointer);
 
       setInterval(() => {
@@ -308,6 +393,18 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet(
       'alpacaRun',
       alpacaRunSpritesheet,
+      { frameWidth: 64, frameHeight: 64 }
+    );
+
+    this.load.spritesheet(
+      'alpacaSpit',
+      alpacaSpitSpritesheet,
+      { frameWidth: 64, frameHeight: 64 }
+    );
+
+    this.load.spritesheet(
+      'spit',
+      spitSpriteSheet,
       { frameWidth: 64, frameHeight: 64 }
     );
 
@@ -344,7 +441,7 @@ class MainScene extends Phaser.Scene {
   }
 
   setupEnvironmentObjects() {
-    // CRYBABY FOUNTAIN WILL GRAND A WISH WIHTH EVERY TEAR ⛲️😭
+    // CRYBABY FOUNTAIN WILL GRANT A WISH WIHTH EVERY TEAR ⛲️😭
     const fountain = this.physics.add.sprite(this.FOUNTAIN_X, this.FOUNTAIN_Y, 'crybabyFountain');
     fountain.setScale(this.SPRITE_SCALE);
     fountain.play({key: 'crybabyFountainFlow'})
@@ -408,6 +505,7 @@ class MainScene extends Phaser.Scene {
   startFirebaseListener() {
     this.startObjectListener();
     this.startAlpacaListener();
+    this.startSpitListener();
   }
 
   create() {
