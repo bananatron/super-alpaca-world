@@ -13,7 +13,7 @@ class MainScene extends Phaser.Scene {
   COLORMAP = {
     'yellow': 0xffcc00,
     'purple': 0x8E7CC3,
-    'blue': 0xFFFFFF,
+    'blue': 0xAEE2E2,
     'green': 0x93C47D,
     'pink': 0xFF68CC,
   }
