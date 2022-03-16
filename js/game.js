@@ -464,6 +464,8 @@ const config = {
   type: Phaser.AUTO,
   width: window.innerWidth,
   height: window.innerHeight,
+  scaleMode: Phaser.Scale.RESIZE,
+  resizeInterval: 2000,
   parent: 'game-viewport',
   physics: {
       default: 'arcade'
