@@ -3,6 +3,8 @@ import $ from 'cash-dom';
 import { Game } from './game';
 import { getDatabase, ref, onValue, update, push, remove } from "firebase/database";
 
+const MESSAGE_LIMIT_IN_MS = 60 * 60 * 1000;
+
 export const UI = {
   start: () => {
     new Vue({
@@ -26,6 +28,35 @@ export const UI = {
         chat_hidden: false,
         chat_messages: {},
         command_warning: '',
+      },
+      computed: {
+        filteredChatMessages: function() {
+          const now = (new Date()).getTime();
+          const result = Object.entries(this.chat_messages)
+            .filter(([id, message]) => {
+              return message.timestamp && (now - message.timestamp) < MESSAGE_LIMIT_IN_MS;
+            })
+            .map(([id, message]) => {
+              return {
+                message: message.message,
+                author: message.author,
+                timestamp: message.timestamp,
+                messageId: id,
+              };
+            });
+
+          result.sort((a, b) => {
+            if (a.timestamp > b.timestamp) {
+              return 1;
+            }
+            if (a.timestamp < b.timestamp) {
+              return -1;
+            }
+            return 0;
+          });
+
+          return result;
+        },
       },
       methods: {
         submitNameForm: function() {
@@ -162,6 +193,7 @@ export const UI = {
           push(ref(db, `chat_messages`), {
             author: window.localStorage.getItem('name'),
             message: this.chat_input,
+            timestamp: (new Date()).getTime(),
           });
           this.chat_input = '';
         },

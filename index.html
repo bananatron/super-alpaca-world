@@ -49,11 +49,10 @@
     <section class="chat-viewport" v-bind:class="{dn: !name_form_complete, 'is-hidden': chat_hidden }">
       <button class="button pointer" v-on:click="chat_hidden = !chat_hidden">🤫</button>
       <ul class="pa2 overflow-auto">
-        <li v-for="(chatMessage, messageId) in chat_messages" :key="messageId" class="mb3">
+        <li v-for="(chatMessage) in filteredChatMessages" class="mb3">
           <span class="o-80">{{ chatMessage.author }}</span>:
           <span class="fg1">{{ chatMessage.message }}</span>
-          <span class="o-40 fr f6 pt1">{{ chatMessage.timestamp }}</span>
-          <span class="fr pointer o-50" v-if="chatMessage.author == name" v-on:click="deleteChatMessage(messageId)">🗑</span>
+          <span class="fr pointer o-50" v-if="chatMessage.author == name" v-on:click="deleteChatMessage(chatMessage.messageId)">🗑</span>
         </li>
       </ul>
       <span class="red pa1">{{command_warning}}</span>
