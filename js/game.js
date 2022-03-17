@@ -9,6 +9,7 @@ import crybabyFountain from '../assets/sprites/crybaby-fountain.png';
 import sign from '../assets/sprites/sign.png';
 import stones from '../assets/sprites/stones.png';
 import trees from '../assets/sprites/trees.png';
+import deleteIcon from '../assets/sprites/delete.png';
 import grassBackround from '../assets/bg/grass.png';
 
 class MainScene extends Phaser.Scene {
@@ -34,10 +35,13 @@ class MainScene extends Phaser.Scene {
 
   db = getDatabase();
   target = new Phaser.Math.Vector2();
+  editor_enabled = false;
 
   // Filled with sprite objects as firebase connects
   game_alpacas = {} 
   game_objects = {}
+  player_objects = {}
+  editor_buttons = []
 
   startAlpacaListener() {
     const localUserId = window.localStorage.getItem('id')
@@ -119,11 +123,16 @@ class MainScene extends Phaser.Scene {
 
       // Destroy all objects before they're replaced
       this.destroyAllObjects();
+      this.player_objects = {};
 
       // Players have stores of objects
       Object.keys(objectSnapshot).forEach((key) => {
         const playerObjectsData = objectSnapshot[key];
         if (!playerObjectsData) return;
+
+        if (key === window.localStorage.getItem('id')) {
+          this.player_objects = playerObjectsData;
+        }
 
         // Each player store
         Object.keys(playerObjectsData).forEach((objKey) => {
@@ -390,6 +399,18 @@ class MainScene extends Phaser.Scene {
       this.submitSpitLocation();
     });
 
+    this.input.keyboard.on('keydown-TAB', (event) => {
+      if (event.target.tagName === 'TEXTAREA') return;
+      event.preventDefault();
+
+      this.editor_enabled = !this.editor_enabled;
+      if (this.editor_enabled) {
+        this.enableEditor();
+      } else {
+        this.disableEditor();
+      }
+    });
+
     // On click
     this.input.on('pointerup', function (pointer) {
       this.submitMoveLocation(pointer);
@@ -451,6 +472,7 @@ class MainScene extends Phaser.Scene {
       { frameWidth: 64, frameHeight: 64 }
     );
 
+    this.load.image('delete', deleteIcon);
     this.load.image('grass', grassBackround);
 
     this.alpaca_group = this.physics.add.group({
@@ -548,6 +570,40 @@ class MainScene extends Phaser.Scene {
     if (alpacaSprite.name === window.localStorage.getItem('id')) {
       this.cameras.main.shake(150, .005, 20);
     }
+  }
+
+  disableEditor() {
+    this.editor_buttons.forEach(sprite => {
+      sprite.disableInteractive();
+      sprite.destroy();
+    });
+  }
+
+  enableEditor() {
+    Object.entries(this.player_objects).forEach(([key, obj]) => {
+      const object_sprite = this.game_objects[key].sprite;
+      const center = object_sprite.getCenter();
+      const sprite = this.add.sprite(center.x, center.y, 'delete');
+      sprite.setDepth(999999999);
+      sprite.setInteractive();
+      sprite.setAlpha(0.5);
+      this.editor_buttons.push(sprite);
+
+      sprite.on('pointerover', (pointer) => {
+        sprite.setAlpha(1.0);
+      });
+
+      sprite.on('pointerout', (pointer) => {
+        sprite.setAlpha(0.5);
+      });
+
+      sprite.on('pointerup', (pointer) => {
+        sprite.removeInteractive();
+        sprite.destroy();
+        const path = `objects/${window.localStorage.getItem('id')}/${key}`;
+        remove(ref(this.db, path));
+      });
+    });
   }
 
   create() {
